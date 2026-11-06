@@ -31,6 +31,38 @@ magpie plugin login teleagent
 TELEAGENT_RELAY_KEY=<你那份客户端里的串> magpie gateway
 ```
 
+## 没装桌面端时：deviceId / installId 怎么办
+
+对话签名里要用到 `deviceId` 和 `installId` 两个字段。正常情况下这两个值来自 TeleAgent
+桌面端的 `app-auth/device-meta.json`。如果你**没装桌面端**（例如只贴 X-Token 登录），
+这两项会是空串，签名算出来仍然有效但会被网关判「缺头」，报：
+
+```
+401 · missing super agent signature headers
+```
+
+解决办法：在 magpie 里给这个插件手动填一组稳定值。CLI 里：
+
+```sh
+magpie plugin options ./packages/teleagent '{"deviceId":"<12位hex>","installId":"<UUID>"}'
+```
+
+例如：
+
+```sh
+magpie plugin options ./packages/teleagent '{"deviceId":"b883df0f5547","installId":"8b5de806-0ad7-4e0c-940b-2df6a62f1c93"}'
+```
+
+两个值的来源**不重要**，重要的是**保持不变**——它们是这台风机的身份标识，频繁更换会提高风控命中。装完 options 后：
+
+```sh
+magpie provider test teleagent
+```
+
+应能拿到 `✓ chat`，不再报 401 缺头。
+
+（如果之后装了桌面端，桌面端的 `device-meta.json` 会优先，options 里手填的值只在没装桌面端时兜底。）
+
 ## 登录态在哪
 
 TeleAgent 这个构建在 Windows 上也用 Linux 风格的路径（实测本机是 `C:\Users\<你>\.local\share\TeleAgent`）：
